@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+
+require 'date'
+
+class Rule
+  attr_accessor :raw, :id, :action, :proto, :src, :dst, :iface, :options
+
+  def initialize(str)
+    @raw = str
+    [
+      /^(?<id>[\d]+) (?<action>.*) (?<proto>ip|udp|tcp) from (?<src>.*) to (?<dst>.*) via (?<iface>.*) (?<options>in|out)$/,
+      /^(?<id>[\d]+) (?<action>.*) (?<proto>ip|udp|tcp) from (?<src>.*) to (?<dst>.*)(?<iface>.*) (?<options>in|out)$/,
+      /^(?<id>[\d]+) (?<action>.*) (?<proto>ip|udp|tcp) from (?<src>.*) to (?<dst>.*)(?<iface>.*)(?<options>.*)$/,
+    ].each do |r|
+      matches = r.match str
+      if matches then
+        @id = matches[:id]
+        @action = matches[:action]
+        @proto = matches[:proto]
+        @src = matches[:src]
+        @dst = matches[:dst]
+        @iface = matches[:iface]
+        @options = matches[:options]
+        break
+      end
+    end
+  end
+end
+
+def log_message(msg)
+  date = DateTime.now
+  puts "[#{date}] #{msg}"
+end
+
+rules = `ipfw list`.lines.map(&:chomp)
+rules.each do |r|
+  rule = Rule.new(r)
+  if rule.action =~ /deny/ then
+    log_message "Deleting rule ##{rule.id} (#{rule.raw})"
+    Kernel.system("ipfw delete #{rule.id}")
+  elsif rule.iface =~ /lo/ then
+    log_message "Deleting rule ##{rule.id} (#{rule.raw})"
+    Kernel.system("ipfw delete #{rule.id}")
+  end
+end
+
+# vi: set ts=2 sw=2

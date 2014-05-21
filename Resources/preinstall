@@ -1,0 +1,6 @@
+#!/bin/bash
+
+cat /dev/null >/var/log/ipfwgcd.log
+launchctl unload -w /Library/LaunchDaemons/com.telemundo.ipfwgcd.plist
+
+exit 0
